@@ -55,6 +55,15 @@ export default function SubscriptionsPage() {
     setEditForm(subscriptionToForm(sub));
   };
 
+  const handleToggleActive = async (sub: Subscription) => {
+    try {
+      await api.put(`/subscriptions/${sub.id}`, { is_active: !sub.is_active });
+      fetchSubscriptions();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleDelete = async (sub: Subscription) => {
     if (!window.confirm(`Delete subscription “${sub.name}”? This cannot be undone.`)) return;
     try {
@@ -148,6 +157,13 @@ export default function SubscriptionsPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => handleToggleActive(sub)}
+                    >
+                      {sub.is_active ? 'Pause' : 'Resume'}
+                    </button>
                     <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(sub)}>
                       Edit
                     </button>

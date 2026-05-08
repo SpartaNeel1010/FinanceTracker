@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import api from '@/lib/api';
 import {
   type Subscription,
@@ -9,6 +10,16 @@ import {
   type SubscriptionFormState,
 } from '@/types/subscription';
 
+function apiErrorMessage(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail.map((d: { msg?: string }) => d.msg).filter(Boolean);
+    if (parts.length) return parts.join(', ');
+  }
+  return fallback;
+}
+
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,6 +27,9 @@ export default function SubscriptionsPage() {
   const [newSub, setNewSub] = useState<SubscriptionFormState>(emptySubscriptionForm());
   const [editingSub, setEditingSub] = useState<Subscription | null>(null);
   const [editForm, setEditForm] = useState<SubscriptionFormState>(emptySubscriptionForm());
+  const [savingAdd, setSavingAdd] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [rowBusyId, setRowBusyId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchSubscriptions();
@@ -27,6 +41,7 @@ export default function SubscriptionsPage() {
       setSubscriptions(data);
     } catch (error) {
       console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to load subscriptions'));
     } finally {
       setLoading(false);
     }
@@ -34,6 +49,7 @@ export default function SubscriptionsPage() {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSavingAdd(true);
     try {
       await api.post('/subscriptions', {
         name: newSub.name,
@@ -42,11 +58,15 @@ export default function SubscriptionsPage() {
         next_billing_date: newSub.next_billing_date,
         category: newSub.category || null,
       });
+      toast.success('Subscription added');
       setShowModal(false);
       setNewSub(emptySubscriptionForm());
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to add subscription'));
+    } finally {
+      setSavingAdd(false);
     }
   };
 
@@ -56,28 +76,39 @@ export default function SubscriptionsPage() {
   };
 
   const handleToggleActive = async (sub: Subscription) => {
+    setRowBusyId(sub.id);
     try {
       await api.put(`/subscriptions/${sub.id}`, { is_active: !sub.is_active });
+      toast.success(sub.is_active ? 'Subscription paused' : 'Subscription resumed');
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to update status'));
+    } finally {
+      setRowBusyId(null);
     }
   };
 
   const handleDelete = async (sub: Subscription) => {
     if (!window.confirm(`Delete subscription “${sub.name}”? This cannot be undone.`)) return;
+    setRowBusyId(sub.id);
     try {
       await api.delete(`/subscriptions/${sub.id}`);
+      toast.success('Subscription deleted');
       if (editingSub?.id === sub.id) setEditingSub(null);
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to delete'));
+    } finally {
+      setRowBusyId(null);
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSub) return;
+    setSavingEdit(true);
     try {
       await api.put(`/subscriptions/${editingSub.id}`, {
         name: editForm.name,
@@ -87,10 +118,14 @@ export default function SubscriptionsPage() {
         is_active: editForm.is_active,
         category: editForm.category || null,
       });
+      toast.success('Subscription updated');
       setEditingSub(null);
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to update subscription'));
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -129,6 +164,15 @@ export default function SubscriptionsPage() {
       <div className="card">
         {loading ? (
           <p>Loading...</p>
+        ) : subscriptions.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+            <p style={{ color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
+              No subscriptions yet. Add recurring bills and services to track monthly cost.
+            </p>
+            <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+              Add your first subscription
+            </button>
+          </div>
         ) : (
           <table className="table">
             <thead>
@@ -160,17 +204,24 @@ export default function SubscriptionsPage() {
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
+                      disabled={rowBusyId === sub.id}
                       onClick={() => handleToggleActive(sub)}
                     >
-                      {sub.is_active ? 'Pause' : 'Resume'}
+                      {rowBusyId === sub.id ? '…' : sub.is_active ? 'Pause' : 'Resume'}
                     </button>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(sub)}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={rowBusyId === sub.id}
+                      onClick={() => openEdit(sub)}
+                    >
                       Edit
                     </button>
                     <button
                       type="button"
                       className="btn btn-danger btn-sm"
                       style={{ marginLeft: '0.35rem' }}
+                      disabled={rowBusyId === sub.id}
                       onClick={() => handleDelete(sub)}
                     >
                       Delete
@@ -234,10 +285,16 @@ export default function SubscriptionsPage() {
               />
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  Save
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingAdd}>
+                  {savingAdd ? 'Saving…' : 'Save'}
                 </button>
-                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowModal(false)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ flex: 1 }}
+                  disabled={savingAdd}
+                  onClick={() => setShowModal(false)}
+                >
                   Cancel
                 </button>
               </div>
@@ -307,10 +364,16 @@ export default function SubscriptionsPage() {
                 Active subscription
               </label>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
-                  Save changes
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={savingEdit}>
+                  {savingEdit ? 'Saving…' : 'Save changes'}
                 </button>
-                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setEditingSub(null)}>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ flex: 1 }}
+                  disabled={savingEdit}
+                  onClick={() => setEditingSub(null)}
+                >
                   Cancel
                 </button>
               </div>

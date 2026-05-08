@@ -1,22 +1,18 @@
 'use client';
 import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-
-interface Subscription {
-  id: number;
-  name: string;
-  amount: number;
-  billing_period: string;
-  next_billing_date: string;
-  is_active: boolean;
-  category: string;
-}
+import {
+  type Subscription,
+  BILLING_PERIOD_OPTIONS,
+  emptySubscriptionForm,
+  type SubscriptionFormState,
+} from '@/types/subscription';
 
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [newSub, setNewSub] = useState({ name: '', amount: '', billing_period: 'monthly', next_billing_date: '', category: '' });
+  const [newSub, setNewSub] = useState<SubscriptionFormState>(emptySubscriptionForm());
 
   useEffect(() => {
     fetchSubscriptions();
@@ -24,7 +20,7 @@ export default function SubscriptionsPage() {
 
   const fetchSubscriptions = async () => {
     try {
-      const { data } = await api.get('/subscriptions');
+      const { data } = await api.get<Subscription[]>('/subscriptions');
       setSubscriptions(data);
     } catch (error) {
       console.error(error);
@@ -37,19 +33,26 @@ export default function SubscriptionsPage() {
     e.preventDefault();
     try {
       await api.post('/subscriptions', {
-        ...newSub,
-        amount: parseFloat(newSub.amount)
+        name: newSub.name,
+        amount: parseFloat(newSub.amount),
+        billing_period: newSub.billing_period,
+        next_billing_date: newSub.next_billing_date,
+        category: newSub.category || null,
       });
       setShowModal(false);
+      setNewSub(emptySubscriptionForm());
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
     }
   };
 
-  const totalMonthly = subscriptions
-    .filter(s => s.is_active)
-    .reduce((acc, curr) => acc + (curr.billing_period === 'yearly' ? curr.amount / 12 : curr.amount), 0);
+  const totalMonthly = subscriptions.filter((s) => s.is_active).reduce((acc, curr) => {
+    const a = curr.amount;
+    if (curr.billing_period === 'yearly') return acc + a / 12;
+    if (curr.billing_period === 'weekly') return acc + (a * 52) / 12;
+    return acc + a;
+  }, 0);
 
   return (
     <div>
@@ -58,7 +61,9 @@ export default function SubscriptionsPage() {
           <h1 style={{ fontSize: '1.75rem' }}>Subscriptions Tracker</h1>
           <p style={{ color: 'var(--muted-foreground)' }}>Manage your recurring payments and bills</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Add Subscription</button>
+        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+          + Add Subscription
+        </button>
       </div>
 
       <div className="stats-grid" style={{ marginBottom: '2rem' }}>
@@ -68,7 +73,9 @@ export default function SubscriptionsPage() {
         </div>
         <div className="stat-card">
           <div className="stat-label">Active Subscriptions</div>
-          <div className="stat-value" style={{ color: 'var(--accent)' }}>{subscriptions.filter(s => s.is_active).length}</div>
+          <div className="stat-value" style={{ color: 'var(--accent)' }}>
+            {subscriptions.filter((s) => s.is_active).length}
+          </div>
         </div>
       </div>
 
@@ -87,14 +94,17 @@ export default function SubscriptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {subscriptions.map(sub => (
+              {subscriptions.map((sub) => (
                 <tr key={sub.id}>
                   <td style={{ fontWeight: 600 }}>{sub.name}</td>
                   <td>${sub.amount.toFixed(2)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{sub.billing_period}</td>
                   <td>{new Date(sub.next_billing_date).toLocaleDateString()}</td>
                   <td>
-                    <span className="badge" style={{ background: sub.is_active ? 'var(--success)' : 'var(--muted-foreground)' }}>
+                    <span
+                      className="badge"
+                      style={{ background: sub.is_active ? 'var(--success)' : 'var(--muted-foreground)' }}
+                    >
                       {sub.is_active ? 'Active' : 'Cancelled'}
                     </span>
                   </td>
@@ -110,19 +120,58 @@ export default function SubscriptionsPage() {
           <div className="modal">
             <h2>Add Subscription</h2>
             <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
-              <input type="text" className="input" placeholder="Service Name (e.g. Netflix)" value={newSub.name} onChange={e => setNewSub({...newSub, name: e.target.value})} required />
-              <input type="number" className="input" placeholder="Amount" step="0.01" value={newSub.amount} onChange={e => setNewSub({...newSub, amount: e.target.value})} required />
-              <select className="input" value={newSub.billing_period} onChange={e => setNewSub({...newSub, billing_period: e.target.value})}>
-                <option value="monthly">Monthly</option>
-                <option value="yearly">Yearly</option>
-                <option value="weekly">Weekly</option>
+              <input
+                type="text"
+                className="input"
+                placeholder="Service Name (e.g. Netflix)"
+                value={newSub.name}
+                onChange={(e) => setNewSub({ ...newSub, name: e.target.value })}
+                required
+              />
+              <input
+                type="number"
+                className="input"
+                placeholder="Amount"
+                step="0.01"
+                value={newSub.amount}
+                onChange={(e) => setNewSub({ ...newSub, amount: e.target.value })}
+                required
+              />
+              <select
+                className="input"
+                value={newSub.billing_period}
+                onChange={(e) =>
+                  setNewSub({ ...newSub, billing_period: e.target.value as SubscriptionFormState['billing_period'] })
+                }
+              >
+                {BILLING_PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </select>
-              <input type="date" className="input" value={newSub.next_billing_date} onChange={e => setNewSub({...newSub, next_billing_date: e.target.value})} required />
-              <input type="text" className="input" placeholder="Category (e.g. Entertainment)" value={newSub.category} onChange={e => setNewSub({...newSub, category: e.target.value})} />
-              
+              <input
+                type="date"
+                className="input"
+                value={newSub.next_billing_date}
+                onChange={(e) => setNewSub({ ...newSub, next_billing_date: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                className="input"
+                placeholder="Category (e.g. Entertainment)"
+                value={newSub.category}
+                onChange={(e) => setNewSub({ ...newSub, category: e.target.value })}
+              />
+
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save</button>
-                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  Save
+                </button>
+                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
               </div>
             </form>
           </div>

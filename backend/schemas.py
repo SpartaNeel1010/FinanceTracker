@@ -237,3 +237,35 @@ class UserAchievementResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ─── Debt Schemas ─────────────────────────────────────────────────────────────
+
+class DebtCreate(BaseModel):
+    name: str
+    balance: float
+    interest_rate: float
+    minimum_payment: float
+    color: str = "#EF4444"
+
+
+class DebtUpdate(BaseModel):
+    name: Optional[str] = None
+    balance: Optional[float] = None
+    interest_rate: Optional[float] = None
+    minimum_payment: Optional[float] = None
+    color: Optional[str] = None
+
+
+class DebtResponse(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    balance: float
+    interest_rate: float
+    minimum_payment: float
+    color: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

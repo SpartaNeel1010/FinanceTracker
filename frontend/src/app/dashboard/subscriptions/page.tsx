@@ -5,6 +5,7 @@ import {
   type Subscription,
   BILLING_PERIOD_OPTIONS,
   emptySubscriptionForm,
+  subscriptionToForm,
   type SubscriptionFormState,
 } from '@/types/subscription';
 
@@ -13,6 +14,8 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newSub, setNewSub] = useState<SubscriptionFormState>(emptySubscriptionForm());
+  const [editingSub, setEditingSub] = useState<Subscription | null>(null);
+  const [editForm, setEditForm] = useState<SubscriptionFormState>(emptySubscriptionForm());
 
   useEffect(() => {
     fetchSubscriptions();
@@ -41,6 +44,30 @@ export default function SubscriptionsPage() {
       });
       setShowModal(false);
       setNewSub(emptySubscriptionForm());
+      fetchSubscriptions();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const openEdit = (sub: Subscription) => {
+    setEditingSub(sub);
+    setEditForm(subscriptionToForm(sub));
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSub) return;
+    try {
+      await api.put(`/subscriptions/${editingSub.id}`, {
+        name: editForm.name,
+        amount: parseFloat(editForm.amount),
+        billing_period: editForm.billing_period,
+        next_billing_date: editForm.next_billing_date,
+        is_active: editForm.is_active,
+        category: editForm.category || null,
+      });
+      setEditingSub(null);
       fetchSubscriptions();
     } catch (error) {
       console.error(error);
@@ -91,6 +118,7 @@ export default function SubscriptionsPage() {
                 <th>Billing</th>
                 <th>Next Bill</th>
                 <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -107,6 +135,11 @@ export default function SubscriptionsPage() {
                     >
                       {sub.is_active ? 'Active' : 'Cancelled'}
                     </span>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button type="button" className="btn btn-ghost" style={{ padding: '0.35rem 0.75rem' }} onClick={() => openEdit(sub)}>
+                      Edit
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -170,6 +203,79 @@ export default function SubscriptionsPage() {
                   Save
                 </button>
                 <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingSub && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h2>Edit subscription</h2>
+            <form
+              onSubmit={handleEditSubmit}
+              style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}
+            >
+              <input
+                type="text"
+                className="input"
+                placeholder="Service Name"
+                value={editForm.name}
+                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                required
+              />
+              <input
+                type="number"
+                className="input"
+                placeholder="Amount"
+                step="0.01"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
+                required
+              />
+              <select
+                className="input"
+                value={editForm.billing_period}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, billing_period: e.target.value as SubscriptionFormState['billing_period'] })
+                }
+              >
+                {BILLING_PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                className="input"
+                value={editForm.next_billing_date}
+                onChange={(e) => setEditForm({ ...editForm, next_billing_date: e.target.value })}
+                required
+              />
+              <input
+                type="text"
+                className="input"
+                placeholder="Category"
+                value={editForm.category}
+                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                <input
+                  type="checkbox"
+                  checked={editForm.is_active}
+                  onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                />
+                Active subscription
+              </label>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>
+                  Save changes
+                </button>
+                <button type="button" className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setEditingSub(null)}>
                   Cancel
                 </button>
               </div>

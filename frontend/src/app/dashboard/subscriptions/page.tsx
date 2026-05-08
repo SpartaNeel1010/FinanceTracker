@@ -31,7 +31,21 @@ export default function SubscriptionsPage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [rowBusyId, setRowBusyId] = useState<number | null>(null);
 
+  const fetchSubscriptions = async () => {
+    try {
+      const { data } = await api.get<Subscription[]>('/subscriptions');
+      setSubscriptions(data);
+    } catch (error) {
+      console.error(error);
+      toast.error(apiErrorMessage(error, 'Failed to load subscriptions'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    // Initial data load; same pattern as other dashboard pages
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch updates list/loading from API
     fetchSubscriptions();
   }, []);
 
@@ -47,18 +61,6 @@ export default function SubscriptionsPage() {
       return () => window.removeEventListener('keydown', onKey);
     }
   }, [showModal, editingSub, savingAdd, savingEdit, rowBusyId]);
-
-  const fetchSubscriptions = async () => {
-    try {
-      const { data } = await api.get<Subscription[]>('/subscriptions');
-      setSubscriptions(data);
-    } catch (error) {
-      console.error(error);
-      toast.error(apiErrorMessage(error, 'Failed to load subscriptions'));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();

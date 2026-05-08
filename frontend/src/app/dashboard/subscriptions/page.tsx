@@ -35,6 +35,19 @@ export default function SubscriptionsPage() {
     fetchSubscriptions();
   }, []);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (savingAdd || savingEdit || rowBusyId != null) return;
+      if (editingSub) setEditingSub(null);
+      else if (showModal) setShowModal(false);
+    };
+    if (showModal || editingSub) {
+      window.addEventListener('keydown', onKey);
+      return () => window.removeEventListener('keydown', onKey);
+    }
+  }, [showModal, editingSub, savingAdd, savingEdit, rowBusyId]);
+
   const fetchSubscriptions = async () => {
     try {
       const { data } = await api.get<Subscription[]>('/subscriptions');
@@ -143,7 +156,7 @@ export default function SubscriptionsPage() {
           <h1 style={{ fontSize: '1.75rem' }}>Subscriptions Tracker</h1>
           <p style={{ color: 'var(--muted-foreground)' }}>Manage your recurring payments and bills</p>
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)} aria-haspopup="dialog">
           + Add Subscription
         </button>
       </div>
@@ -169,7 +182,7 @@ export default function SubscriptionsPage() {
             <p style={{ color: 'var(--muted-foreground)', marginBottom: '1rem' }}>
               No subscriptions yet. Add recurring bills and services to track monthly cost.
             </p>
-            <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowModal(true)} aria-haspopup="dialog">
               Add your first subscription
             </button>
           </div>
@@ -206,6 +219,7 @@ export default function SubscriptionsPage() {
                       className="btn btn-ghost btn-sm"
                       disabled={rowBusyId === sub.id}
                       onClick={() => handleToggleActive(sub)}
+                      aria-label={sub.is_active ? `Pause ${sub.name}` : `Resume ${sub.name}`}
                     >
                       {rowBusyId === sub.id ? '…' : sub.is_active ? 'Pause' : 'Resume'}
                     </button>
@@ -214,6 +228,7 @@ export default function SubscriptionsPage() {
                       className="btn btn-ghost btn-sm"
                       disabled={rowBusyId === sub.id}
                       onClick={() => openEdit(sub)}
+                      aria-label={`Edit ${sub.name}`}
                     >
                       Edit
                     </button>
@@ -223,6 +238,7 @@ export default function SubscriptionsPage() {
                       style={{ marginLeft: '0.35rem' }}
                       disabled={rowBusyId === sub.id}
                       onClick={() => handleDelete(sub)}
+                      aria-label={`Delete ${sub.name}`}
                     >
                       Delete
                     </button>
@@ -235,9 +251,14 @@ export default function SubscriptionsPage() {
       </div>
 
       {showModal && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h2>Add Subscription</h2>
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-add-title"
+          >
+            <h2 id="subscription-add-title">Add Subscription</h2>
             <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
               <input
                 type="text"
@@ -304,9 +325,14 @@ export default function SubscriptionsPage() {
       )}
 
       {editingSub && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <h2>Edit subscription</h2>
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="subscription-edit-title"
+          >
+            <h2 id="subscription-edit-title">Edit subscription</h2>
             <form
               onSubmit={handleEditSubmit}
               style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}

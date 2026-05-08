@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },
   { href: '/dashboard/budgets', label: 'Budgets', icon: '📊' },
   { href: '/dashboard/goals', label: 'Savings Goals', icon: '🎯' },
+  { href: '/dashboard/debts', label: 'Debt Payoff', icon: '💳' },
   { href: '/dashboard/achievements', label: 'Achievements', icon: '🏆' },
   { href: '/dashboard/ai', label: 'AI Insights', icon: '✨' },
   { href: '/dashboard/chat', label: 'AI Chat', icon: '💬' },

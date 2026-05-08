@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
-from routes import auth, transactions, budgets, goals, ai, subscriptions, achievements
+from routes import auth, transactions, budgets, goals, ai, subscriptions, achievements, debts
 
 app = FastAPI(
     title="SpendSense API",
@@ -26,6 +26,7 @@ app.include_router(goals.router)
 app.include_router(ai.router)
 app.include_router(subscriptions.router)
 app.include_router(achievements.router)
+app.include_router(debts.router)
 
 
 @app.on_event("startup")

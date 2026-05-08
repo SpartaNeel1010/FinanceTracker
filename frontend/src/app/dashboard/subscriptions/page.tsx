@@ -55,6 +55,17 @@ export default function SubscriptionsPage() {
     setEditForm(subscriptionToForm(sub));
   };
 
+  const handleDelete = async (sub: Subscription) => {
+    if (!window.confirm(`Delete subscription “${sub.name}”? This cannot be undone.`)) return;
+    try {
+      await api.delete(`/subscriptions/${sub.id}`);
+      if (editingSub?.id === sub.id) setEditingSub(null);
+      fetchSubscriptions();
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSub) return;
@@ -137,8 +148,16 @@ export default function SubscriptionsPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button type="button" className="btn btn-ghost" style={{ padding: '0.35rem 0.75rem' }} onClick={() => openEdit(sub)}>
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => openEdit(sub)}>
                       Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      style={{ marginLeft: '0.35rem' }}
+                      onClick={() => handleDelete(sub)}
+                    >
+                      Delete
                     </button>
                   </td>
                 </tr>

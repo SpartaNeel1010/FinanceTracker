@@ -177,3 +177,63 @@ class AIAnalysisResponse(BaseModel):
     recommendations: List[str]
     anomalies: List[str]
     spending_patterns: dict
+
+
+# ─── Subscription Schemas ─────────────────────────────────────────────────────
+
+class SubscriptionCreate(BaseModel):
+    name: str
+    amount: float
+    billing_period: str = "monthly"
+    next_billing_date: date
+    is_active: bool = True
+    category: Optional[str] = None
+
+
+class SubscriptionUpdate(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[float] = None
+    billing_period: Optional[str] = None
+    next_billing_date: Optional[date] = None
+    is_active: Optional[bool] = None
+    category: Optional[str] = None
+
+
+class SubscriptionResponse(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    amount: float
+    billing_period: str
+    next_billing_date: date
+    is_active: bool
+    category: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Achievement Schemas ──────────────────────────────────────────────────────
+
+class AchievementBase(BaseModel):
+    name: str
+    description: str
+    icon: str
+    points: int
+
+    class Config:
+        from_attributes = True
+
+class AchievementResponse(AchievementBase):
+    id: int
+
+class UserAchievementResponse(BaseModel):
+    id: int
+    user_id: int
+    achievement_id: int
+    earned_at: datetime
+    achievement: AchievementResponse
+
+    class Config:
+        from_attributes = True

@@ -26,6 +26,8 @@ class User(Base):
     transactions = relationship("Transaction", back_populates="owner", cascade="all, delete-orphan")
     budgets = relationship("Budget", back_populates="owner", cascade="all, delete-orphan")
     goals = relationship("SavingsGoal", back_populates="owner", cascade="all, delete-orphan")
+    subscriptions = relationship("Subscription", back_populates="owner", cascade="all, delete-orphan")
+    achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
 
 
 class Transaction(Base):
@@ -78,3 +80,42 @@ class SavingsGoal(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("User", back_populates="goals")
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    amount = Column(Float, nullable=False)
+    billing_period = Column(String, default="monthly")  # monthly, yearly, weekly
+    next_billing_date = Column(Date, nullable=False)
+    is_active = Column(Boolean, default=True)
+    category = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    owner = relationship("User", back_populates="subscriptions")
+
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, unique=True)
+    description = Column(String, nullable=False)
+    icon = Column(String, nullable=False)  # emoji or icon name
+    points = Column(Integer, default=10)
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    achievement_id = Column(Integer, ForeignKey("achievements.id"), nullable=False)
+    earned_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="achievements")
+    achievement = relationship("Achievement")

@@ -5,15 +5,17 @@ import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '' },
-  { href: '/dashboard/transactions', label: 'Transactions', icon: '' },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: '' },
-  { href: '/dashboard/budgets', label: 'Budgets', icon: '' },
-  { href: '/dashboard/goals', label: 'Savings Goals', icon: '' },
-  { href: '/dashboard/ai', label: 'AI Insights', icon: '' },
-  { href: '/dashboard/chat', label: 'AI Chat', icon: '' },
-  { href: '/dashboard/import', label: 'Import Data', icon: '' },
-  { href: '/dashboard/settings', label: 'Settings', icon: '' },
+  { href: '/dashboard', label: 'Dashboard', icon: '🏠' },
+  { href: '/dashboard/transactions', label: 'Transactions', icon: '📝' },
+  { href: '/dashboard/subscriptions', label: 'Subscriptions', icon: '🔄' },
+  { href: '/dashboard/analytics', label: 'Analytics', icon: '📈' },
+  { href: '/dashboard/budgets', label: 'Budgets', icon: '📊' },
+  { href: '/dashboard/goals', label: 'Savings Goals', icon: '🎯' },
+  { href: '/dashboard/achievements', label: 'Achievements', icon: '🏆' },
+  { href: '/dashboard/ai', label: 'AI Insights', icon: '✨' },
+  { href: '/dashboard/chat', label: 'AI Chat', icon: '💬' },
+  { href: '/dashboard/import', label: 'Import Data', icon: '📥' },
+  { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

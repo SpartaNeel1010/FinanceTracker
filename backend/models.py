@@ -28,6 +28,7 @@ class User(Base):
     goals = relationship("SavingsGoal", back_populates="owner", cascade="all, delete-orphan")
     subscriptions = relationship("Subscription", back_populates="owner", cascade="all, delete-orphan")
     achievements = relationship("UserAchievement", back_populates="user", cascade="all, delete-orphan")
+    debts = relationship("Debt", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Transaction(Base):
@@ -119,3 +120,19 @@ class UserAchievement(Base):
 
     user = relationship("User", back_populates="achievements")
     achievement = relationship("Achievement")
+
+
+class Debt(Base):
+    __tablename__ = "debts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    balance = Column(Float, nullable=False)
+    interest_rate = Column(Float, nullable=False)  # Annual Percentage Rate (APR)
+    minimum_payment = Column(Float, nullable=False)
+    color = Column(String, default="#EF4444")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    owner = relationship("User", back_populates="debts")
